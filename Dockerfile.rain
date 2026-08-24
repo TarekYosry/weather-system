@@ -7,4 +7,4 @@ RUN mvn dependency:go-offline
 
 COPY src ./src
 
-CMD ["mvn", "compile", "exec:java", "-Dexec.mainClass=com.netcentric.lab4.WeatherStation"]
+CMD ["mvn", "compile", "exec:java", "-Dexec.mainClass=com.netcentric.lab4.RainProcessor"]

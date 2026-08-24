@@ -11,17 +11,25 @@ import java.util.Random;
 
 public class WeatherStation {
 
+    
     public static void main(String[] args) {
         
         Properties properties = new Properties();
-        properties.setProperty(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "127.0.0.1:9092");
+        String kafkaBroker = System.getenv("KAFKA_BROKER") != null ? System.getenv("KAFKA_BROKER") : "kafka:9092";
+        properties.setProperty(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaBroker);        
         properties.setProperty(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
         properties.setProperty(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
 
         KafkaProducer<String, String> producer = new KafkaProducer<>(properties);
         Random random = new Random();
         
-        long stationId = 1L; 
+        long stationId;
+        try {
+            String ip = java.net.InetAddress.getLocalHost().getHostAddress();
+            stationId = Long.parseLong(ip.substring(ip.lastIndexOf('.') + 1));
+        } catch (Exception e) {
+            stationId = (long) (Math.random() * 10000) + 1;
+        }
         long sequenceNumber = 1L;
         String topicName = "weather_data";
 
@@ -29,6 +37,7 @@ public class WeatherStation {
             while (true) {
                 Thread.sleep(1000); 
 
+                long currentSeq = sequenceNumber++;
                 if (random.nextInt(100) < 10) {
                     System.out.println("Message dropped.");
                     continue; 
@@ -51,9 +60,9 @@ public class WeatherStation {
 
                 JsonObject message = new JsonObject();
                 message.addProperty("station_id", stationId);
-                message.addProperty("s_no", sequenceNumber++);
+                message.addProperty("sequence_number", currentSeq);
                 message.addProperty("battery_status", batteryStatus);
-                message.addProperty("status_timestamp", System.currentTimeMillis() / 1000L);
+                message.addProperty("timestamp", System.currentTimeMillis() / 1000L);
                 message.add("weather", weather);
 
                 ProducerRecord<String, String> record = new ProducerRecord<>(topicName, message.toString());
